@@ -5,36 +5,35 @@ import Button from "../common/Button";
 export default function FeaturedProducts({ products = [] }) {
   if (!products?.length) return null;
 
-  // Design-specific placement: 1 large on left, 2 smaller on right
-  const mainProduct = products[0];
-  const sideProducts = products.slice(1, 4);
+  // Use up to 8 products for a balanced 4-column grid
+  const displayProducts = products.slice(0, 8);
 
   return (
-    <section className="section-padding bg-white">
+    <section className="section-padding bg-surface/30 border-t border-border/40">
       <div className="site-container">
-        <SectionTitle
-          eyebrow="The Collection"
-          title="Featured Pieces"
-          description="A study in modern elegance and architectural form."
-          action={
-            <Button href="/products" variant="ghost" className="text-secondary hover:text-primary">
-              View All
+        <div className="mb-12">
+          <SectionTitle
+            eyebrow="The Collection"
+            title="Featured Pieces"
+            description="Our curated selection of seasonless essentials."
+            action={
+              <Button href="/products" variant="ghost" className="text-secondary hover:text-primary">
+                View All
+              </Button>
+            }
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-16">
+          {displayProducts.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
+        
+        <div className="mt-16 flex justify-center">
+            <Button href="/products" className="bg-white border border-border text-primary hover:border-black transition-colors px-12 h-14">
+               Explore Full Collection
             </Button>
-          }
-        />
-
-        <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-12 lg:gap-20">
-          {/* Main Large Product */}
-          <div className="lg:pr-10">
-            <ProductCard product={mainProduct} large />
-          </div>
-
-          {/* Secondary Products Column */}
-          <div className="flex flex-col gap-16">
-            {sideProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
         </div>
       </div>
     </section>

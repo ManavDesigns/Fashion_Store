@@ -4,7 +4,7 @@ import Link from "next/link";
 import { cn } from "../../lib/utils";
 
 function buildHref(basePath, searchParams, key, value) {
-  const params = new URLSearchParams(searchParams);
+  const params = new URLSearchParams(searchParams || {});
   if (!value) {
     params.delete(key);
   } else if (params.get(key) === value) {
@@ -33,7 +33,7 @@ export default function FilterSidebar({ basePath, searchParams, groups = [] }) {
               </h3>
               <div className="grid gap-3">
                 {group.options.map((option) => {
-                  const active = searchParams.get(group.key) === option.value;
+                  const active = new URLSearchParams(searchParams || {}).get(group.key) === option.value;
                   return (
                     <Link
                       key={`${group.key}-${option.value}`}
