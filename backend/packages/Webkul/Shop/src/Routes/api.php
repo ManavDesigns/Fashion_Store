@@ -99,6 +99,10 @@ Route::group(['prefix' => 'api'], function () {
     });
 
     Route::group(['middleware' => ['customer'], 'prefix' => 'customer'], function () {
+        Route::controller(CustomerController::class)->group(function () {
+            Route::get('logout', 'logout')->name('shop.api.customers.session.destroy');
+        });
+
         Route::controller(AddressController::class)->prefix('addresses')->group(function () {
             Route::get('', 'index')->name('shop.api.customers.account.addresses.index');
 

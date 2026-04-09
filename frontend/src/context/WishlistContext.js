@@ -29,11 +29,21 @@ function writeStoredWishlist(items) {
 }
 
 export function WishlistProvider({ children }) {
-  const [items, setItems] = useState(readStoredWishlist);
+  const [items, setItems] = useState([]);
+  const [isHydrated, setIsHydrated] = useState(false);
 
+  // Load from storage once on mount
   useEffect(() => {
-    writeStoredWishlist(items);
-  }, [items]);
+    setItems(readStoredWishlist());
+    setIsHydrated(true);
+  }, []);
+
+  // Sync to storage whenever items change (after hydration)
+  useEffect(() => {
+    if (isHydrated) {
+      writeStoredWishlist(items);
+    }
+  }, [items, isHydrated]);
 
   async function addItem(product) {
     const nextItem = {

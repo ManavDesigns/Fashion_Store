@@ -50,4 +50,20 @@ class CustomerController extends APIController
 
         return response()->json([]);
     }
+
+    /**
+     * Logout Customer
+     *
+     * @return JsonResponse
+     */
+    public function logout()
+    {
+        auth()->guard('customer')->logout();
+
+        Event::dispatch('customer.after.logout');
+
+        return response()->json([
+            'message' => 'Logged out successfully',
+        ]);
+    }
 }

@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { User, Package, MapPin, Heart, ShoppingBag, LogOut } from "lucide-react";
+import { customerApi } from "../../lib/bagisto";
 
 const links = [
   { href: "#profile", label: "Profile", icon: User },
@@ -12,6 +14,19 @@ const links = [
 ];
 
 export default function AccountSidebar() {
+  const router = useRouter();
+
+  async function handleLogout() {
+    try {
+      await customerApi.logout();
+      router.push("/auth");
+      router.refresh();
+    } catch (error) {
+      console.error("Logout failed:", error);
+      router.push("/auth");
+    }
+  }
+
   return (
     <aside className="sticky top-28 flex flex-col gap-8 fade-in">
       <div className="flex flex-col gap-2 border-b border-border/40 pb-6">
@@ -33,7 +48,10 @@ export default function AccountSidebar() {
       </nav>
 
       <div className="border-t border-border/40 pt-6 mt-4">
-        <button className="flex items-center gap-4 p-4 rounded-xl text-error/80 hover:text-error hover:bg-error/5 transition-all w-full group">
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-4 p-4 rounded-xl text-error/80 hover:text-error hover:bg-error/5 transition-all w-full group"
+        >
           <LogOut size={16} className="opacity-70 group-hover:opacity-100 transition-opacity" />
           <span className="uppercase tracking-widest text-[10px] font-bold">Sign Out</span>
         </button>

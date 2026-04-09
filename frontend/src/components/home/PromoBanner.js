@@ -6,7 +6,7 @@ export default function PromoBanner() {
     <section className="site-container my-12 md:my-24">
       <div className="relative aspect-[16/9] md:aspect-[21/9] bg-surface rounded-[40px] overflow-hidden group border border-border/50 shadow-xl">
         <Image
-          src="/home/manav.machhi/.gemini/antigravity/brain/e5ced431-15ac-4cd2-ae49-01f86be7a133/atelier_promo_suiting_1775468036433.png"
+          src="https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=1471&auto=format&fit=crop"
           alt="Summer Suiting Series"
           fill
           unoptimized

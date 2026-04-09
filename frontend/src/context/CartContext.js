@@ -29,12 +29,22 @@ function writeStoredCart(items) {
 }
 
 export function CartProvider({ children }) {
-  const [items, setItems] = useState(readStoredCart);
+  const [items, setItems] = useState([]);
+  const [isHydrated, setIsHydrated] = useState(false);
   const [status, setStatus] = useState("idle");
 
+  // Load from storage once on mount
   useEffect(() => {
-    writeStoredCart(items);
-  }, [items]);
+    setItems(readStoredCart());
+    setIsHydrated(true);
+  }, []);
+
+  // Sync to storage whenever items change (after hydration)
+  useEffect(() => {
+    if (isHydrated) {
+      writeStoredCart(items);
+    }
+  }, [items, isHydrated]);
 
   async function syncAddToBackend(item) {
     if (!item?.productId) {

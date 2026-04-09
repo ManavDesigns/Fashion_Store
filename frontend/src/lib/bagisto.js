@@ -69,11 +69,22 @@ const PRODUCT_QUERY = `
   }
 `;
 
-function getEnv(name) {
-  const value = process.env[name];
+// Use explicit property references so Next.js can statically inline
+// NEXT_PUBLIC_* values for the client-side bundle at build time.
+// Dynamic process.env[name] access is NOT resolved by Next.js on the client.
+const BAGISTO_CONFIG = {
+  endpoint: process.env.NEXT_PUBLIC_BAGISTO_ENDPOINT,
+  graphqlEndpoint: process.env.NEXT_PUBLIC_BAGISTO_GRAPHQL_ENDPOINT,
+  storefrontKey: process.env.NEXT_PUBLIC_BAGISTO_STOREFRONT_KEY,
+  channelCode: process.env.NEXT_PUBLIC_BAGISTO_CHANNEL_CODE,
+  locale: process.env.NEXT_PUBLIC_BAGISTO_LOCALE,
+};
+
+function getConfig(key) {
+  const value = BAGISTO_CONFIG[key];
 
   if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`);
+    throw new Error(`Missing required Bagisto config: ${key}`);
   }
 
   return value;
@@ -84,13 +95,13 @@ function resolveBagistoUrl(path) {
     return path;
   }
 
-  return new URL(path, getEnv("NEXT_PUBLIC_BAGISTO_ENDPOINT")).toString();
+  return new URL(path, getConfig("endpoint")).toString();
 }
 
 function storefrontHeaders(extraHeaders = {}) {
   return {
     "Content-Type": "application/json",
-    "X-STOREFRONT-KEY": getEnv("NEXT_PUBLIC_BAGISTO_STOREFRONT_KEY"),
+    "X-STOREFRONT-KEY": getConfig("storefrontKey"),
     ...extraHeaders,
   };
 }
@@ -135,11 +146,27 @@ function connectionToItems(connection) {
   return connection?.edges?.map((edge) => edge.node) ?? [];
 }
 
+export async function getFrontendProduct(id) {
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_BAGISTO_ENDPOINT}/api/frontend/products/${id}`,
+    {
+      method: "GET",
+      cache: "no-store",
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch product");
+  }
+
+  return res.json();
+}
+
 export async function bagistoFetch(query, variables = {}, options = {}) {
   // GraphQL helper:
   // Use this when you want to GET data through Bagisto GraphQL.
   // Route used: POST /api/graphql
-  const response = await fetch(getEnv("NEXT_PUBLIC_BAGISTO_GRAPHQL_ENDPOINT"), {
+  const response = await fetch(getConfig("graphqlEndpoint"), {
     method: "POST",
     headers: storefrontHeaders(options.headers),
     body: JSON.stringify({ query, variables }),
@@ -268,6 +295,15 @@ export const customerApi = {
     return bagistoRest("/api/customer/login", {
       method: "POST",
       body: credentials,
+    });
+  },
+
+  logout() {
+    // Use for:
+    // Logout customer from frontend.
+    // Route used: GET /api/customer/logout
+    return bagistoRest("/api/customer/logout", {
+      method: "GET",
     });
   },
 

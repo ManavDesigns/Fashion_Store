@@ -1,6 +1,7 @@
 import { gql } from "@apollo/client";
 import { getApolloClient } from "../lib/apolloClient";
 import { mapConnectionNodes } from "../lib/utils";
+import { getFrontendProduct } from "../lib/bagisto";
 import HeroSection from "../components/home/HeroSection";
 import FeaturedProducts from "../components/home/FeaturedProducts";
 import NewArrivals from "../components/home/NewArrivals";
@@ -96,6 +97,21 @@ async function getHomePageData() {
     categories: categories.slice(0, 3),
   };
 }
+
+
+// export default async function HomePage() {
+//   const product = await getFrontendProduct(12);
+
+//   console.log(product);
+
+//   return (
+//     <div>
+//       <h1>{product.name}</h1>
+//       <p>{product.price}</p>
+//     </div>
+//   );
+// }
+
 
 export default async function HomePage() {
   const { featuredProducts, newArrivals, categories } = await getHomePageData();

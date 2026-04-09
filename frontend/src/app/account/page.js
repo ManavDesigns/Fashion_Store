@@ -1,10 +1,13 @@
-import { Search, Mail, ShieldCheck } from "lucide-react";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Search, Mail, ShieldCheck, LogOut } from "lucide-react";
 import AccountSidebar from "../../components/account/AccountSidebar";
 import OrdersSection from "../../components/account/OrdersSection";
+import { customerApi } from "../../lib/bagisto";
 
-export const metadata = {
-  title: "Account | The Atelier",
-};
+// Moved metadata to a separate layout file or removed for client component compatibility
 
 const mockOrders = [
   {
@@ -14,7 +17,10 @@ const mockOrders = [
     price: "$1,250.00",
     status: "IN TRANSIT",
     action: "TRACK ORDER",
-    images: ["/home/manav.machhi/.gemini/antigravity/brain/e5ced431-15ac-4cd2-ae49-01f86be7a133/atelier_hero_women_1775467882866.png", "/home/manav.machhi/.gemini/antigravity/brain/e5ced431-15ac-4cd2-ae49-01f86be7a133/atelier_promo_suiting_1775468036433.png"]
+    images: [
+      "https://images.unsplash.com/photo-1483985988355-763728e1935b?q=80&w=400&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=400&auto=format&fit=crop"
+    ]
   },
   {
     number: "#AT-88432",
@@ -23,7 +29,9 @@ const mockOrders = [
     price: "$450.00",
     status: "DELIVERED",
     action: "REORDER",
-    images: ["/home/manav.machhi/.gemini/antigravity/brain/e5ced431-15ac-4cd2-ae49-01f86be7a133/atelier_promo_suiting_1775468036433.png"]
+    images: [
+      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=400&auto=format&fit=crop"
+    ]
   },
   {
     number: "#AT-87001",
@@ -32,11 +40,26 @@ const mockOrders = [
     price: "$210.00",
     status: "DELIVERED",
     action: "REORDER",
-    images: ["/home/manav.machhi/.gemini/antigravity/brain/e5ced431-15ac-4cd2-ae49-01f86be7a133/atelier_hero_women_1775467882866.png"]
+    images: [
+      "https://images.unsplash.com/photo-1617137968427-85924c800a22?q=80&w=400&auto=format&fit=crop"
+    ]
   }
 ];
 
 export default function AccountPage() {
+  const router = useRouter();
+
+  async function handleLogout() {
+    try {
+      await customerApi.logout();
+      router.push("/auth");
+      router.refresh();
+    } catch (error) {
+       console.error("Logout failed:", error);
+       router.push("/auth");
+    }
+  }
+
   return (
     <main className="bg-surface/30 min-h-screen pt-12 pb-24 border-t border-border/40">
       <div className="site-container">
@@ -112,8 +135,11 @@ export default function AccountPage() {
                </a>
              </nav>
              <div className="mt-8 pt-8 border-t border-border/40">
-               <button className="flex items-center gap-4 p-5 font-bold text-[10px] uppercase tracking-widest text-[#d32f2f] hover:text-[#b71c1c] transition-all">
-                 <div className="w-4 h-4 ml-1" />
+               <button
+                 onClick={handleLogout}
+                 className="flex items-center gap-4 p-5 font-bold text-[10px] uppercase tracking-widest text-[#d32f2f] hover:text-[#b71c1c] transition-all w-full text-left"
+               >
+                 <LogOut size={16} />
                  Sign Out
                </button>
              </div>

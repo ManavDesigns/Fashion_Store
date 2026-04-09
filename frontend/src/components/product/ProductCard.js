@@ -51,7 +51,7 @@ export default function ProductCard({ product }) {
     <article className="group flex flex-col fade-in">
       {/* ── Image ── */}
       <div className="relative aspect-[3/4] bg-surface overflow-hidden mb-4">
-        <Link href={href} className="block w-full h-full">
+        <Link href={href} className="relative block w-full h-full">
           {imageUrl ? (
             <Image
               src={imageUrl}
