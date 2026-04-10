@@ -11,7 +11,7 @@ const SLUG = "womens";
 const WOMEN_SLUGS = ["womens", "formal-wear-female", "casual-wear-female", "active-wear-female", "footwear-female"];
 
 const ALL_PRODUCTS_QUERY = `
-  query GetAllData($firstCategories: Int, $firstProducts: Int, $channel: String, $locale: String) {
+  query GetAllData($firstCategories: Int, $firstProducts: Int, $channel: String, $locale: String, $filter: String) {
     categories(first: $firstCategories) {
       edges {
         node {
@@ -25,7 +25,7 @@ const ALL_PRODUCTS_QUERY = `
         }
       }
     }
-    products(first: $firstProducts, channel: $channel, locale: $locale) {
+    products(first: $firstProducts, filter: $filter, channel: $channel, locale: $locale) {
       edges {
         node {
           id
@@ -59,10 +59,21 @@ const ALL_PRODUCTS_QUERY = `
   }
 `;
 
-async function getData() {
+async function getData(searchParamsObj) {
   const endpoint = process.env.NEXT_PUBLIC_BAGISTO_GRAPHQL_ENDPOINT;
   const storefrontKey = process.env.NEXT_PUBLIC_BAGISTO_STOREFRONT_KEY || "";
   if (!endpoint) return { categories: [], products: [] };
+
+  const filterObj = {};
+  
+  if (searchParamsObj.size) filterObj.size = searchParamsObj.size;
+  if (searchParamsObj.color) filterObj.color = searchParamsObj.color;
+  
+  if (searchParamsObj.price) {
+    const [min, max] = searchParamsObj.price.split("-");
+    if (min) filterObj.price_from = min;
+    if (max) filterObj.price_to = max;
+  }
 
   try {
     const res = await fetch(endpoint, {
@@ -77,11 +88,12 @@ async function getData() {
         variables: {
           firstCategories: 50,
           firstProducts: 120,
+          filter: JSON.stringify(filterObj),
           channel: process.env.NEXT_PUBLIC_BAGISTO_CHANNEL_CODE || "default",
           locale: process.env.NEXT_PUBLIC_BAGISTO_LOCALE || "en",
         },
       }),
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
 
     if (!res.ok) return { categories: [], products: [] };
@@ -99,15 +111,35 @@ async function getData() {
 }
 
 export default async function WomenPage({ searchParams }) {
-  const queryParams = new URLSearchParams(await searchParams);
+  const searchParamsObj = await searchParams;
+  const queryParams = new URLSearchParams(searchParamsObj);
   const sort = queryParams.get("sort") || "";
 
-  const { categories, products } = await getData();
+  const { categories, products } = await getData(searchParamsObj);
 
   const category = categories.find((c) => c.translation?.slug === SLUG);
 
+  const counts = {
+    "formal-wear-female": 0,
+    "casual-wear-female": 0,
+    "active-wear-female": 0,
+    "footwear-female": 0,
+  };
+
+  products.forEach((product) => {
+    product.categories?.edges?.forEach((edge) => {
+      const slug = edge.node?.translation?.slug;
+      if (typeof counts[slug] !== "undefined") {
+        counts[slug]++;
+      }
+    });
+  });
+
+  const categoryFilterSlug = searchParamsObj.category || null;
+  const targetSlugs = categoryFilterSlug ? [categoryFilterSlug] : WOMEN_SLUGS;
+
   const categoryProducts = products.filter((product) =>
-    product.categories?.edges?.some((edge) => WOMEN_SLUGS.includes(edge.node?.translation?.slug))
+    product.categories?.edges?.some((edge) => targetSlugs.includes(edge.node?.translation?.slug))
   );
 
   const sorted = [...categoryProducts].sort((a, b) => {
@@ -121,10 +153,10 @@ export default async function WomenPage({ searchParams }) {
     {
       key: "category",
       options: [
-        { label: "Formal Wear", value: "formal-wear-female", count: 0 },
-        { label: "Casual Wear", value: "casual-wear-female", count: 0 },
-        { label: "Active Wear", value: "active-wear-female", count: 0 },
-        { label: "Footwear", value: "footwear-female", count: 0 },
+        { label: "Formal Wear", value: "formal-wear-female", count: counts["formal-wear-female"] },
+        { label: "Casual Wear", value: "casual-wear-female", count: counts["casual-wear-female"] },
+        { label: "Active Wear", value: "active-wear-female", count: counts["active-wear-female"] },
+        { label: "Footwear", value: "footwear-female", count: counts["footwear-female"] },
       ],
     },
   ];
@@ -139,10 +171,16 @@ export default async function WomenPage({ searchParams }) {
             {category ? `${category.translation?.name.toUpperCase()}'S COLLECTION` : "WOMEN'S COLLECTION"}
           </h1>
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mt-4 border-b border-border/60 pb-8">
-            <p className="text-sm font-medium text-secondary max-w-md leading-relaxed">
-              {category?.translation?.description ||
-                "Fluid silhouettes and pure organic textures designed for an inherently modern lifestyle. Uncompromising elegance."}
-            </p>
+            {category?.translation?.description ? (
+              <div
+                className="text-sm font-medium text-secondary max-w-md leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: category.translation.description }}
+              />
+            ) : (
+              <p className="text-sm font-medium text-secondary max-w-md leading-relaxed">
+                Fluid silhouettes and pure organic textures designed for an inherently modern lifestyle. Uncompromising elegance.
+              </p>
+            )}
             <div className="shrink-0 mb-[-12px]">
               <SortDropdown
                 basePath="/women"
@@ -159,27 +197,27 @@ export default async function WomenPage({ searchParams }) {
           </div>
         </div>
 
-        {sorted.length === 0 ? (
-          <div className="py-20 flex flex-col items-center justify-center border border-dashed border-border/40 bg-surface/50">
-            <h2 className="text-xl font-bold mb-2">No products found</h2>
-            <p className="text-sm text-secondary">
-              There are no products in the Women's category yet. Make sure products are assigned to this category in Bagisto.
-            </p>
+        <div className="flex flex-col lg:flex-row gap-12 lg:gap-16">
+          <div className="w-full lg:w-64 shrink-0">
+            <FilterSidebar basePath="/women" searchParams={searchParamsObj} groups={filterGroups} />
           </div>
-        ) : (
-          <div className="flex flex-col lg:flex-row gap-12 lg:gap-16">
-            <div className="w-full lg:w-64 shrink-0">
-              <FilterSidebar basePath="/women" searchParams={queryParams} groups={filterGroups} />
-            </div>
-            <div className="flex-1">
+          <div className="flex-1">
+            {sorted.length === 0 ? (
+              <div className="py-20 flex flex-col items-center justify-center border border-dashed border-border/40 bg-surface/50">
+                <h2 className="text-xl font-bold mb-2">No products found</h2>
+                <p className="text-sm text-secondary">
+                  There are no products matching your selected filters. Please clear some filters and try again.
+                </p>
+              </div>
+            ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-16">
-                {sorted.map((product) => (
-                  <ProductCard key={product.id} product={product} />
+                {sorted.map((product, index) => (
+                  <ProductCard key={product.id} product={product} priority={index < 4} />
                 ))}
               </div>
-            </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </main>
   );

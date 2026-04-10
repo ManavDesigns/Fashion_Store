@@ -98,12 +98,27 @@ function resolveBagistoUrl(path) {
   return new URL(path, getConfig("endpoint")).toString();
 }
 
+function getXsrfToken() {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(new RegExp('(^|;\\s*)(XSRF-TOKEN)=([^;]*)'));
+  return match ? decodeURIComponent(match[3]) : null;
+}
+
 function storefrontHeaders(extraHeaders = {}) {
-  return {
+  const headers = {
     "Content-Type": "application/json",
+    "Accept": "application/json",
     "X-STOREFRONT-KEY": getConfig("storefrontKey"),
+    "X-Requested-With": "XMLHttpRequest",
     ...extraHeaders,
   };
+  
+  const xsrfToken = getXsrfToken();
+  if (xsrfToken) {
+    headers["X-XSRF-TOKEN"] = xsrfToken;
+  }
+
+  return headers;
 }
 
 function pickErrorMessage(payload, fallback) {
@@ -140,6 +155,15 @@ async function parseResponse(response, fallbackMessage) {
   }
 
   return payload;
+}
+
+export async function ensureCsrf() {
+  // Sanctum CSRF cookie initialization for stateful requests
+  const endpoint = getConfig("endpoint");
+  await fetch(`${endpoint}/sanctum/csrf-cookie`, {
+    method: "GET",
+    credentials: "include",
+  });
 }
 
 function connectionToItems(connection) {
@@ -182,7 +206,7 @@ export async function bagistoFetch(query, variables = {}, options = {}) {
   return payload.data;
 }
 
-export async function bagistoRest(path, options = {}) {
+export async function bagistoRest(path, options = {}, isRetry = false) {
   // REST helper:
   // Use this when you want to call normal HTTP routes like GET, POST, PUT, DELETE.
   // Example routes: /api/shop/add-product-in-cart, /api/customer/login
@@ -193,6 +217,16 @@ export async function bagistoRest(path, options = {}) {
     cache: options.cache ?? "no-store",
     credentials: options.credentials ?? "include",
   });
+
+  if (response.status === 419 && !isRetry) {
+    // CSRF token mismatch/expired. Automatically refresh token and retry the request once.
+    await ensureCsrf();
+    return bagistoRest(path, options, true);
+  }
+
+  if (response.status === 429) {
+    throw new Error("Rate limit exceeded. Please wait a moment and try again.");
+  }
 
   return parseResponse(response, `Bagisto request failed for ${path}`);
 }
@@ -287,24 +321,32 @@ export const customerApi = {
     });
   },
 
-  login(credentials) {
+  async login(credentials) {
     // Use for:
     // Login customer from frontend.
-    // Route used: POST /api/customer/login
+    // Route used: POST /api/shop/customer/login
     // Sends: { email, password }
-    return bagistoRest("/api/customer/login", {
+    await ensureCsrf();
+    return bagistoRest("/api/shop/customer/login", {
       method: "POST",
       body: credentials,
     });
   },
 
-  logout() {
+  async logout() {
     // Use for:
     // Logout customer from frontend.
     // Route used: GET /api/customer/logout
     return bagistoRest("/api/customer/logout", {
       method: "GET",
     });
+  },
+
+  getProfile() {
+    // Use for:
+    // Get logged-in customer's details.
+    // Route used: GET /api/shop/customers (Identified from Bagisto route:list)
+    return bagistoRest("/api/shop/customers");
   },
 
   getAddresses() {

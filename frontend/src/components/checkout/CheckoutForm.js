@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import Button from "../common/Button";
 import { bagistoApi } from "../../lib/bagisto";
 
@@ -53,6 +53,8 @@ export default function CheckoutForm({ hasItems }) {
   const [billingStates, setBillingStates] = useState([]);
   const [status, setStatus] = useState("idle");
   const [message, setMessage] = useState("");
+  const [stateCache, setStateCache] = useState({}); // Simple cache for states: { countryCode: [states] }
+  const fetchingRef = useRef({}); // Track in-flight requests: { countryCode: Promise }
 
   const billingMirror = useMemo(() => {
     if (!form.use_for_shipping) return null;
@@ -87,42 +89,79 @@ export default function CheckoutForm({ hasItems }) {
 
   useEffect(() => {
     let ignore = false;
-    async function loadShippingStates() {
-      if (!form.country) {
-        setShippingStates([]);
+    
+    const countryCode = form.country;
+    const billingCountryCode = form.use_for_shipping ? form.country : form.billing_country;
+    
+    async function fetchStates(code, setter) {
+      if (!code) {
+        setter([]);
         return;
       }
-      try {
-        const response = await bagistoApi.directory.getStates(form.country);
-        const items = Array.isArray(response) ? response : response?.data || response?.states || [];
-        if (!ignore) setShippingStates(items);
-      } catch {
-        if (!ignore) setShippingStates([]);
-      }
-    }
-    loadShippingStates();
-    return () => { ignore = true; };
-  }, [form.country]);
 
-  useEffect(() => {
-    let ignore = false;
-    async function loadBillingStates() {
-      const countryCode = form.use_for_shipping ? form.country : form.billing_country;
-      if (!countryCode) {
-        setBillingStates([]);
+      // 1. Check if already in cache
+      if (stateCache[code]) {
+        setter(stateCache[code]);
         return;
       }
+
+      // 2. Check if already fetching
+      if (fetchingRef.current[code]) {
+        try {
+          const items = await fetchingRef.current[code];
+          if (!ignore) setter(items);
+        } catch {
+          if (!ignore) setter([]);
+        }
+        return;
+      }
+
+      // 3. Perform fetch and track it
+      const fetchPromise = (async () => {
+        try {
+          // Find country ID from code
+          const countryObj = countries.find(c => c.code === code);
+          // If countries haven't loaded yet, or it's an invalid code, we can't reliably get states via ID.
+          // In that case, we can try to hit the core API for states.
+          let items = [];
+          if (countryObj && countryObj.id) {
+             const response = await bagistoApi.rest(`/api/shop/countries/${countryObj.id}/states`);
+             items = Array.isArray(response) ? response : response?.data || response?.states || [];
+          } else {
+             // Fallback to core states API if we must use code
+             const coreResponse = await bagistoApi.rest(`/api/core/states`);
+             items = coreResponse?.data?.[code] || [];
+          }
+          return items;
+        } catch (err) {
+          throw err;
+        }
+      })();
+
+      fetchingRef.current[code] = fetchPromise;
+
+
       try {
-        const response = await bagistoApi.directory.getStates(countryCode);
-        const items = Array.isArray(response) ? response : response?.data || response?.states || [];
-        if (!ignore) setBillingStates(items);
+        const items = await fetchPromise;
+        if (!ignore) {
+          setStateCache(prev => ({ ...prev, [code]: items }));
+          setter(items);
+        }
       } catch {
-        if (!ignore) setBillingStates([]);
+        if (!ignore) setter([]);
+      } finally {
+        // Keep in cache but remove from in-flight tracker
+        delete fetchingRef.current[code];
       }
     }
-    loadBillingStates();
+
+    fetchStates(countryCode, setShippingStates);
+    fetchStates(billingCountryCode, setBillingStates);
+    
     return () => { ignore = true; };
-  }, [form.billing_country, form.country, form.use_for_shipping]);
+  }, [form.country, form.billing_country, form.use_for_shipping, stateCache, countries]);
+
+
 
   function handleChange(event) {
     const { name, value, type, checked } = event.target;

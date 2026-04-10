@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { customerApi } from "../../lib/bagisto";
 import Button from "../common/Button";
 
 export default function RegisterForm() {
+  const router = useRouter();
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -51,6 +53,10 @@ export default function RegisterForm() {
         subscribedToNewsLetter: false,
       });
       setMessage("Welcome to The Atelier. Your account has been created.");
+      setTimeout(() => {
+        router.push("/account");
+        router.refresh();
+      }, 1500);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Registration failed.");
     } finally {

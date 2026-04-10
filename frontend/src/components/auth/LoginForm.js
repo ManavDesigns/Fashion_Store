@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { customerApi } from "../../lib/bagisto";
 import Button from "../common/Button";
 
 export default function LoginForm() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -34,6 +36,10 @@ export default function LoginForm() {
     try {
       await customerApi.login({ email, password });
       setMessage("Login successful. Accessing your profile...");
+      setTimeout(() => {
+        router.push("/account");
+        router.refresh();
+      }, 1000);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "We couldn't sign you in with those credentials.");
     } finally {

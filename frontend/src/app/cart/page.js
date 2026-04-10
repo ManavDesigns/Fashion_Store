@@ -65,7 +65,7 @@ export default function CartPage() {
                     {/* Image */}
                     <Link href={itemHref} className="relative w-full sm:w-[140px] aspect-[3/4] bg-surface overflow-hidden shrink-0">
                       {imageUrl ? (
-                        <Image src={imageUrl} alt={item.name} fill unoptimized className="object-cover grayscale-[0.2]" />
+                        <Image src={imageUrl} alt={item.name} fill unoptimized priority className="object-cover grayscale-[0.2]" />
                       ) : (
                         <div className="w-full h-full bg-gray-100 flex items-center justify-center text-[9px] font-black uppercase tracking-widest text-secondary opacity-30">
                           No Image

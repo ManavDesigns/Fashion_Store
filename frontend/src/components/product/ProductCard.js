@@ -12,7 +12,7 @@ import {
 import { useCart } from "../../context/CartContext";
 import { useWishlist } from "../../context/WishlistContext";
 
-export default function ProductCard({ product }) {
+export default function ProductCard({ product, priority = false }) {
   const { addItem: addToCart } = useCart();
   const {
     items: wishlistItems,
@@ -57,6 +57,7 @@ export default function ProductCard({ product }) {
               src={imageUrl}
               alt={product.name}
               fill
+              priority={priority}
               unoptimized
               className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
               sizes="(max-width: 640px) 100vw, (max-width: 960px) 50vw, 25vw"

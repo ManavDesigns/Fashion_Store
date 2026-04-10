@@ -63,13 +63,13 @@ export default function AuthPage() {
            {/* Visual Side */}
            <div className="hidden lg:block relative bg-surface border-l border-border/40">
               <Image
-                src="/home/manav.machhi/.gemini/antigravity/brain/e5ced431-15ac-4cd2-ae49-01f86be7a133/atelier_hero_women_1775467882866.png"
+                src="/images/auth/hero.png"
                 alt="The Atelier Access"
                 fill
-                unoptimized
-                className="object-cover object-center grayscale-[0.3]"
+                priority
+                className="object-cover object-center grayscale-[0.2]"
               />
-              <div className="absolute inset-0 bg-black/10 mix-blend-multiply" />
+              <div className="absolute inset-0 bg-black/5 mix-blend-multiply" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex items-end p-16">
                  <p className="text-white text-sm font-bold uppercase tracking-[0.2em] leading-relaxed max-w-sm drop-shadow-md">
                    "An account grants you early access to archive collections and personalized curation."
